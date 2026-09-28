@@ -1,0 +1,30 @@
+{
+  "runId": "figma-audit-YYYYMMDD-001",
+  "sourceUrl": "",
+  "fileKey": "",
+  "branchKey": null,
+  "fileName": null,
+  "sourceVersion": null,
+  "scope": "WHOLE_FILE",
+  "phase": "reconnaissance",
+  "pagesDiscovered": [],
+  "pagesAnalysed": [],
+  "screensDiscovered": [],
+  "screensDeepRead": [],
+  "prototypePagesAnalysed": [],
+  "assets": {
+    "discovered": 0,
+    "recovered": 0,
+    "regenerated": 0,
+    "blocked": 0
+  },
+  "coverage": {
+    "pages": 0.0,
+    "screens": 0.0,
+    "prototypeReactionNodes": 0.0,
+    "assets": 0.0
+  },
+  "unresolved": [],
+  "blocked": [],
+  "lastCheckpoint": ""
+}
