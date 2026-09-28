@@ -1,0 +1,67 @@
+name: Unpack validated Figma skill bundle
+
+on:
+  push:
+    paths:
+      - '.bundle/**'
+      - '.github/workflows/unpack-skill-bundle.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bundle/part*.b64 | tr -d '\n\r ' | base64 -d > /tmp/figma-agent-skill.tar.gz
+          echo "654d0135af513e82a4184fbcfd13970612e3738965cedda0012ec8f4b908b094  /tmp/figma-agent-skill.tar.gz" | sha256sum -c -
+          tmp="$(mktemp -d)"
+          tar -xzf /tmp/figma-agent-skill.tar.gz -C "$tmp"
+          cp -a "$tmp/figma-agent-skill/." .
+          rm -rf .bundle
+          rm -f .github/workflows/unpack-skill-bundle.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r skills/figma-platform-reverse-engineer/scripts/requirements.txt
+
+      - name: Validate extracted source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python skills/figma-platform-reverse-engineer/evals/lint_bundle.py
+          python skills/figma-platform-reverse-engineer/evals/test_visual_diff.py
+          python -m py_compile \
+            skills/figma-platform-reverse-engineer/scripts/visual_diff.py \
+            skills/figma-platform-reverse-engineer/evals/lint_bundle.py \
+            skills/figma-platform-reverse-engineer/evals/test_visual_diff.py
+          for f in skills/figma-platform-reverse-engineer/scripts/*.js; do
+            { printf 'async function __figma_check__() {\n'; cat "$f"; printf '\n}\n'; } > /tmp/check.mjs
+            node --check /tmp/check.mjs
+          done
+
+      - name: Commit extracted skill
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "figma-agent-bootstrap"
+          git config user.email "figma-agent-bootstrap@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Add production-grade Figma reverse-engineering skill"
+          git push origin HEAD:main
